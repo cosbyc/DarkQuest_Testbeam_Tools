@@ -9,13 +9,19 @@ def get_threshold(prompt):
 def get_emcal_layout(prompt):
     layout = []
     print(prompt)
-    print(f"Enter 4 rows of 4 characters each.")
+    print(f"Enter 4 rows of 4 characters each OR press ENTER to enable all channels.")
 
+    done = False
     for i in range(4):
-        while True:
+        while done == False:
             row = input(f"EMCal row {i + 1}: ").replace(" ", "").strip()
             if len(row) == 4 and all(c in 'oxTV' for c in row):
                 layout.append(list(row))
+                break
+            elif len(row) == 0 and i == 0:
+                for j in range(4):
+                    layout.append('oooo')
+                done = True
                 break
             else:
                 print(f"Invalid row. Each row must be exactly 4 characters long and contain only 'o', 'x', 'T', or 'V'.")

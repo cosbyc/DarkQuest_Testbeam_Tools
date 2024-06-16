@@ -1,6 +1,6 @@
 import os
 
-def read_config(config_filename):
+def readConfig(config_filename):
     try:
         with open(config_filename, 'r') as file:
             lines = file.readlines()

@@ -8,8 +8,9 @@ from argcomplete.completers import ChoicesCompleter
 import os
 import matplotlib.gridspec as gridspec 
 from matplotlib import pyplot, image, transforms
-from src.plot_event import plot_event
-from src.read_config import read_config
+from src.plot_event import plotEvent
+from src.read_config import readConfig
+from src.unscrambler import fixTriggerOrder
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -20,7 +21,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print('')
 
         
-def analyze_run(filename, config):
+def analyzeRun(filename, config):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -46,13 +47,12 @@ def analyze_run(filename, config):
             if current_trigger:
                 # saving previous event before starting next one.
                 # checking trigger and veto conditions
+                totalEvents+=1
                 if failedChannels == 0:
-                    totalEvents+=1
                     current_trigger['event_number'] = totalEvents
                     events.append(current_trigger)
                 else:
                     failedChannels = 0 
-                    totalEvents+=1
             current_trigger = {
                 'event_number': 0,
                 'emcal': np.zeros((4, 4), dtype=int)
@@ -101,7 +101,7 @@ def analyze_run(filename, config):
                         continue
                     if ((bottomHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh ) or (bottomHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh )):
                         failedChannels+=1
-                current_trigger['minihodoB'][channel % 2] = amplitude                    
+                    current_trigger['minihodoB'][channel % 2] = amplitude                    
     return events, totalEvents
 
 def remap(channel):
@@ -127,23 +127,28 @@ def main():
     parser.add_argument('-c', '--configFile', dest='configFile', type=str, help='The name of the .cfg file for the input run file', default='.previous_run.cfg')
     args = parser.parse_args()
 
-    runConfig = read_config(args.configFile)
+    runConfig = readConfig(args.configFile)
     run_number = args.filename.split('Run')[1].split('_')[0]
     output_dir = f'output/run{run_number}'
     os.makedirs(output_dir, exist_ok=True)
 
-    events, totalEvents = analyze_run(args.filename, runConfig)    
+    fixTriggerOrder(args.filename)    
+    events, totalEvents = analyzeRun('tmp.txt', runConfig)
+    os.system('rm tmp.txt')
+    #events, totalEvents = analyzeRun(args.filename, runConfig)
+
+    
     if len(events) == 0:
         print("No events passing selections\n")
         exit()
     else:
-        print(f'{len(events)}/{totalEvents} events passed the selections\n')
+        print(f'{len(events)}/{totalEvents} events passed the selections.\n')
     
     # plotting loop
     if args.makePlots:
         print('Generating plots...\n')
         for i, event in enumerate(events):
-            plot_event(event, i + 1, output_dir, run_number, totalEvents, runConfig)
+            plotEvent(event, i + 1, output_dir, run_number, totalEvents, runConfig)
             if ((i+1) % 20 == 0) or (i+1 == len(events)):
                 printProgressBar (i+1, len(events), suffix=f'{i+1}/{len(events)}')
         print('\n')

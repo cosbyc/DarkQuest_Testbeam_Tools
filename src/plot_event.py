@@ -4,9 +4,11 @@ import os
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image
 
-def plot_event(event, event_number, output_dir, run_number, total_events, config):
+def plotEvent(event, event_number, output_dir, run_number, total_events, config):
     event_number= event['event_number']
     emcal = event['emcal']
+
+    # Figure out which side the hodoscopes should be drawn on, if at all
     minihodoT = minihodoB = []; topHodoCfg = bottomHodoCfg = ''; topHodoSide = botHodoSide = 0
     if config['topHodoEnabled']:
         minihodoT = event['minihodoT']; topHodoCfg = config['topHodoCfg']
