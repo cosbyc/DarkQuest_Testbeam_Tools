@@ -1,57 +1,108 @@
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from argcomplete.completers import ChoicesCompleter
 import os
 import matplotlib.gridspec as gridspec 
 from matplotlib import pyplot, image, transforms
+from src.plot_event import plot_event
+from src.read_config import read_config
 
-def read_file(filename):
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    if iteration == total: 
+        print('')
+
+        
+def analyze_run(filename, config):
     with open(filename, 'r') as file:
         lines = file.readlines()
+
+    triggerThresh = config['triggerThresh']
+    vetoThresh = config['vetoThresh']
+    emcalCfg = config['emcalCfg']
+    topHodoCfg = config['topHodoCfg']
+    bottomHodoCfg = config['bottomHodoCfg']
+    topHodoEnabled = config['topHodoEnabled']
+    botHodoEnabled = config['botHodoEnabled']
+
     events = []
+    totalEvents = 0
+    
     current_trigger = None
+    
+    failedChannels = 0
     for line in lines[9:]:
         parts = line.strip().split()
         
         # Check if the line starts a new EMCal event
         if len(parts) == 7 and int(parts[0]) == 1:
             if current_trigger:
-                events.append(current_trigger)
+                # saving previous event before starting next one.
+                # checking trigger and veto conditions
+                if failedChannels == 0:
+                    totalEvents+=1
+                    current_trigger['event_number'] = totalEvents
+                    events.append(current_trigger)
+                else:
+                    failedChannels = 0 
+                    totalEvents+=1
             current_trigger = {
-                'emcal': np.zeros((4, 4), dtype=int),
-                'minihodoT': np.zeros(2, dtype=int),
-                'minihodoB': np.zeros(2, dtype=int)
+                'event_number': 0,
+                'emcal': np.zeros((4, 4), dtype=int)
             }
+            if topHodoEnabled:
+                current_trigger.update({'minihodoT': np.zeros(2, dtype=int)})
+            if botHodoEnabled:
+                current_trigger.update({'minihodoB': np.zeros(2, dtype=int)})
+            
             board = int(parts[0])
             channel = int(parts[1])
             amplitude = int(parts[3]) #HG
             row, col = remap(channel)
-            current_trigger['emcal'][row, col] = amplitude
+
+            if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh ) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh ):
+                failedChannels += 1
+            if (emcalCfg[row][col] != 'x'):
+                current_trigger['emcal'][row, col] = amplitude
         
         # all other lines, including minihodos
         elif len(parts) >= 4:
             board = int(parts[0])
             channel = int(parts[1])
             amplitude = int(parts[3])
+            
             if board == 1:
                 row, col = remap(channel)
-                current_trigger['emcal'][row, col] = amplitude
-            else:
-                #print(amplitude)
-                if channel == 0:
-                    current_trigger['minihodoT'][1] = amplitude
-                elif channel == 1:
-                    current_trigger['minihodoT'][0] = amplitude
-                elif channel == 2:
-                    current_trigger['minihodoB'][0] = amplitude
-                elif channel == 3:
-                    current_trigger['minihodoB'][1] = amplitude
+                if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh ) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh ):
+                    failedChannels+=1
+                if (emcalCfg[row][col] != 'x'):
+                    current_trigger['emcal'][row, col] = amplitude
+                
+            elif board == 0 and topHodoEnabled and channel < 2:
+                amplitude = int(parts[2]) #LG
+                for j in range(len(topHodoCfg)):
+                    if topHodoCfg[j] == 'x':
+                        continue
+                    if ((topHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh ) or (topHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh )):
+                        failedChannels+=1
+                    current_trigger['minihodoT'][channel % 2] = amplitude
                     
-                    
-    if current_trigger:
-        events.append(current_trigger)
-
-    return events
+            elif board == 0 and botHodoEnabled and channel >= 2:
+                amplitude = int(parts[2]) #LG
+                for j in range(len(bottomHodoCfg)):
+                    if bottomHodoCfg[j] == 'x':
+                        continue
+                    if ((bottomHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh ) or (bottomHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh )):
+                        failedChannels+=1
+                current_trigger['minihodoB'][channel % 2] = amplitude                    
+    return events, totalEvents
 
 def remap(channel):
     rowOffset = colOffset = 0
@@ -69,71 +120,36 @@ def remap(channel):
     # Has to be transposed because of ndenum
     return colOffset, rowOffset
 
-def hodomap(channel):
-    topBottom = 0
-    leftRight = 0
-    if channel % 1 == 1:
-        leftRight += 1
-    if channel >= 2:
-        topBottom += 1
-    return topBottom, leftRight
-
-def plot_event(event, event_number, output_dir, filename):
-    emcal = event['emcal']
-    minihodoT = event['minihodoT']
-    minihodoB = event['minihodoB']
-    
-    fig = plt.figure(1, figsize=(5,8))
-
-    run_number = filename.split('_')[0][3:]
-    fig.suptitle(f'Run {run_number}, Event {event_number}')
-
-    fig.show()
-
-    gs = gridspec.GridSpec(3,2, height_ratios=[0.2,1,0.2], width_ratios=[1,1])
-    gs.update(left=0.05, right=0.95, bottom=0.08, top=0.92, wspace=0.0001, hspace=0.0002)
-    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-    fig.show()
-
-    ax1 = plt.subplot(gs[1,:])
-    cax = ax1.imshow(emcal, cmap='viridis', vmin = 0, vmax = 150)
-    plt.axis('off')
-    #fig.colorbar(cax)
-    for (i, j), val in np.ndenumerate(emcal):
-        ax1.text(j, i, f'{val}', ha='center', va='center', color='white')
-
-    axt = plt.subplot(gs[0,0])
-    plt.margins(y=0)
-    plt.axis('off')
-    caxt = axt.imshow(np.expand_dims(minihodoT, axis=0), cmap='viridis', aspect = 0.35, vmin = 0, vmax = 1000)
-    for i, val in enumerate(minihodoT):
-        axt.text( i, 0 , f'{val}', ha='center', va='center', color='white')
-    
-    axb = plt.subplot(gs[2,0])
-    plt.axis('off')
-    plt.tight_layout(pad=-5)
-    caxb = axb.imshow(np.expand_dims(minihodoB, axis=0), cmap='viridis', aspect = 0.35, vmin = 0, vmax = 1000)
-    for i, val in enumerate(minihodoB):
-        axb.text( i, 0 , f'{val}', ha='center', va='center', color='white')
-    axb.set_adjustable('box')
-
-    evn_string = str(event_number).zfill(2)
-    output_path = os.path.join(output_dir, f'event_{evn_string}.png')
-    plt.savefig(output_path, bbox_inches='tight', pad_inches=0.25)
-    plt.show()
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', type=str, help='Janus event list')
+    parser.add_argument('-p', '--makePlots', action='store_true', dest='makePlots', help='Create maps for all events') 
+    parser.add_argument('-c', '--configFile', dest='configFile', type=str, help='The name of the .cfg file for the input run file', default='.previous_run.cfg')
     args = parser.parse_args()
 
-    output_dir = 'output'
+    runConfig = read_config(args.configFile)
+    run_number = args.filename.split('Run')[1].split('_')[0]
+    output_dir = f'output/run{run_number}'
     os.makedirs(output_dir, exist_ok=True)
 
-    events = read_file(args.filename)
+    events, totalEvents = analyze_run(args.filename, runConfig)    
+    if len(events) == 0:
+        print("No events passing selections\n")
+        exit()
+    else:
+        print(f'{len(events)}/{totalEvents} events passed the selections\n')
     
-    for i, event in enumerate(events):
-        plot_event(event, i + 1, output_dir, args.filename)
+    # plotting loop
+    if args.makePlots:
+        print('Generating plots...\n')
+        for i, event in enumerate(events):
+            plot_event(event, i + 1, output_dir, run_number, totalEvents, runConfig)
+            if ((i+1) % 20 == 0) or (i+1 == len(events)):
+                printProgressBar (i+1, len(events), suffix=f'{i+1}/{len(events)}')
+        print('\n')
+    # calculate average ADC per channel
+    
+
 
 if __name__ == "__main__":
     main()
