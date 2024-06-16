@@ -1,3 +1,6 @@
 # exclude outputs
 /output
 /output/*
+*~
+__pycache__/
+src/__pycache__/
