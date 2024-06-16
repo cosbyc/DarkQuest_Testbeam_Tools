@@ -89,19 +89,24 @@ def analyzeRun(filename, config):
                 amplitude = int(parts[2]) #LG
                 for j in range(len(topHodoCfg)):
                     if topHodoCfg[j] == 'x':
+                        #print(f'top saw an x on {j} at channel {channel}')
                         continue
-                    if (topHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh) or (topHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh):
+                    #if ((topHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh) or (topHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh)):
+                    if ((topHodoCfg[j] == 'T' and amplitude < triggerThresh) or (topHodoCfg[j] == 'V' and amplitude > vetoThresh)) and (channel % 2) == (j % 2):
                         failedChannels+=1
+                    #print(f'{topHodoCfg[j]} == "T" and {amplitude} < triggerThresh) or ({topHodoCfg[j]} == "V" and {amplitude} > vetoThresh)):')
                     current_trigger['minihodoT'][channel % 2] = amplitude
                     
             elif board == 0 and botHodoEnabled and channel >= 2:
                 amplitude = int(parts[2]) #LG
                 for j in range(len(bottomHodoCfg)):
                     if bottomHodoCfg[j] == 'x':
+                        #print(f'bottom saw an x on {j} at channel {channel}')
                         continue
-                    if (bottomHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh) or (bottomHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh):
+                    if ((bottomHodoCfg[j] == 'T' and amplitude < triggerThresh) or (bottomHodoCfg[j] == 'V' and amplitude > vetoThresh)) and (channel % 2) == (j % 2):
                         failedChannels+=1
-                    current_trigger['minihodoB'][channel % 2] = amplitude                    
+                    #print(f'{bottomHodoCfg[j]} == "T" and {amplitude} < triggerThresh) or ({bottomHodoCfg[j]} == "V" and {amplitude} > vetoThresh)):')
+                    current_trigger['minihodoB'][channel % 2] = amplitude
     return events, totalEvents
 
 def remap(channel):
@@ -165,7 +170,9 @@ def main():
         print('\n')
 
     # plot average ADC per channel
-    plotEvent(averageADC(events), output_dir, run_number, totalEvents, runConfig, avg=True)
+    plt.cla()
+    plt.close()
+    plotEvent(averageADC(events), output_dir, run_number, totalEvents, runConfig, avg=True, passingEvents = len(events))
 
 
 if __name__ == "__main__":

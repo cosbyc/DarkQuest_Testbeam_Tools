@@ -4,7 +4,7 @@ import os
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image
 
-def plotEvent(event, output_dir, run_number, total_events, config, avg=False):
+def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None):
     if avg==False:
         event_number= event['event_number']
     emcal = event['emcal']
@@ -28,9 +28,9 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False):
 
     if avg == False:
         evn_string = str(event_number).zfill(len(str(total_events)))
-        fig.suptitle(f'Run {run_number}, Event {evn_string}')
+        fig.suptitle(f'Run {run_number}, Event {evn_string}\n{config["name"]}')
     else:
-        fig.suptitle(f'Run {run_number}, Average ADC [{total_events} events]')
+        fig.suptitle(f'Run {run_number}, Average ADC [{passingEvents}/{total_events} events]\n{config["name"]}')
         
 
     gs = gridspec.GridSpec(3,2, height_ratios=[0.2,1,0.2], width_ratios=[1,1])
@@ -45,14 +45,13 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False):
         ax1.text(j, i, f'{round(val,2)}', ha='center', va='center', color='white')
         #if avg == False:
         #    ax1.text(j, i, f'{val}', ha='center', va='center', color='white')
-
     axt = plt.subplot(gs[0,topHodoSide])
     plt.margins(y=0)
     plt.axis('off')
     caxt = axt.imshow(np.expand_dims(minihodoT, axis=0), cmap='viridis', aspect = 0.35, vmin = 0, vmax = 5000)
     for i, val in enumerate(minihodoT):
         axt.text( i, 0 , f'{val}', ha='center', va='center', color='white')
-    
+            
     axb = plt.subplot(gs[2,botHodoSide])
     plt.axis('off')
     plt.tight_layout(pad=-5)
