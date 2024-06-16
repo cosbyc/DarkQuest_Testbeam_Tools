@@ -4,19 +4,20 @@ import os
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image
 
-def plotEvent(event, event_number, output_dir, run_number, total_events, config):
-    event_number= event['event_number']
+def plotEvent(event, output_dir, run_number, total_events, config, avg=False):
+    if avg==False:
+        event_number= event['event_number']
     emcal = event['emcal']
 
     # Figure out which side the hodoscopes should be drawn on, if at all
     minihodoT = minihodoB = []; topHodoCfg = bottomHodoCfg = ''; topHodoSide = botHodoSide = 0
-    if config['topHodoEnabled']:
+    if config['topHodoEnabled'] and avg == False:
         minihodoT = event['minihodoT']; topHodoCfg = config['topHodoCfg']
         if (topHodoCfg[0] == 'x'): 
             topHodoSide = 1
         elif (topHodoCfg[3] == 'x'):
             topHodoSide = 0
-    if config['botHodoEnabled']:
+    if config['botHodoEnabled'] and avg == False:
         minihodoB = event['minihodoB']; bottomHodoCfg = config['bottomHodoCfg']
         if (bottomHodoCfg[0] == 'x'):
             botHodoSide = 1
@@ -25,8 +26,12 @@ def plotEvent(event, event_number, output_dir, run_number, total_events, config)
 
     fig = plt.figure(1, figsize=(5,8))
 
-    evn_string = str(event_number).zfill(len(str(total_events)))
-    fig.suptitle(f'Run {run_number}, Event {evn_string}')
+    if avg == False:
+        evn_string = str(event_number).zfill(len(str(total_events)))
+        fig.suptitle(f'Run {run_number}, Event {evn_string}')
+    else:
+        fig.suptitle(f'Run {run_number}, Average ADC [{total_events} events]')
+        
 
     gs = gridspec.GridSpec(3,2, height_ratios=[0.2,1,0.2], width_ratios=[1,1])
     gs.update(left=0.05, right=0.95, bottom=0.08, top=0.92, wspace=0.0001, hspace=0.0002)
@@ -37,7 +42,9 @@ def plotEvent(event, event_number, output_dir, run_number, total_events, config)
     plt.axis('off')
     #fig.colorbar(cax)
     for (i, j), val in np.ndenumerate(emcal):
-        ax1.text(j, i, f'{val}', ha='center', va='center', color='white')
+        ax1.text(j, i, f'{round(val,2)}', ha='center', va='center', color='white')
+        #if avg == False:
+        #    ax1.text(j, i, f'{val}', ha='center', va='center', color='white')
 
     axt = plt.subplot(gs[0,topHodoSide])
     plt.margins(y=0)
@@ -54,5 +61,8 @@ def plotEvent(event, event_number, output_dir, run_number, total_events, config)
         axb.text( i, 0 , f'{val}', ha='center', va='center', color='white')
     axb.set_adjustable('box')
 
-    output_path = os.path.join(output_dir, f'event_{evn_string}.png')
+    if avg == False:
+        output_path = os.path.join(output_dir, f'event_{evn_string}.png')
+    else:
+        output_path = os.path.join(output_dir, f'average_ADC.png')        
     plt.savefig(output_path, bbox_inches='tight', pad_inches=0.25)

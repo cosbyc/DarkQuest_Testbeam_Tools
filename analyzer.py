@@ -67,7 +67,7 @@ def analyzeRun(filename, config):
             amplitude = int(parts[3]) #HG
             row, col = remap(channel)
 
-            if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh ) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh ):
+            if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh):
                 failedChannels += 1
             if (emcalCfg[row][col] != 'x'):
                 current_trigger['emcal'][row, col] = amplitude
@@ -80,7 +80,7 @@ def analyzeRun(filename, config):
             
             if board == 1:
                 row, col = remap(channel)
-                if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh ) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh ):
+                if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh):
                     failedChannels+=1
                 if (emcalCfg[row][col] != 'x'):
                     current_trigger['emcal'][row, col] = amplitude
@@ -90,7 +90,7 @@ def analyzeRun(filename, config):
                 for j in range(len(topHodoCfg)):
                     if topHodoCfg[j] == 'x':
                         continue
-                    if ((topHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh ) or (topHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh )):
+                    if (topHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh) or (topHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh):
                         failedChannels+=1
                     current_trigger['minihodoT'][channel % 2] = amplitude
                     
@@ -99,7 +99,7 @@ def analyzeRun(filename, config):
                 for j in range(len(bottomHodoCfg)):
                     if bottomHodoCfg[j] == 'x':
                         continue
-                    if ((bottomHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh ) or (bottomHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh )):
+                    if (bottomHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh) or (bottomHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh):
                         failedChannels+=1
                     current_trigger['minihodoB'][channel % 2] = amplitude                    
     return events, totalEvents
@@ -120,6 +120,19 @@ def remap(channel):
     # Has to be transposed because of ndenum
     return colOffset, rowOffset
 
+def averageADC(events):
+    num_events = len(events)
+    if num_events == 0:
+        return None
+
+    EMCalAvg = np.zeros((4,4), dtype=float)
+
+    for event in events:
+        EMCalAvg += event['emcal']
+    EMCalAvg /= num_events
+    
+    return {'emcal': EMCalAvg}
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', type=str, help='Janus event list')
@@ -129,14 +142,12 @@ def main():
 
     runConfig = readConfig(args.configFile)
     run_number = args.filename.split('Run')[1].split('_')[0]
-    output_dir = f'output/run{run_number}'
+    output_dir = f'output/run{run_number}_{runConfig["name"][:-1]}'
     os.makedirs(output_dir, exist_ok=True)
 
     fixTriggerOrder(args.filename)    
     events, totalEvents = analyzeRun('tmp.txt', runConfig)
     os.system('rm tmp.txt')
-    #events, totalEvents = analyzeRun(args.filename, runConfig)
-
     
     if len(events) == 0:
         print("No events passing selections\n")
@@ -148,12 +159,13 @@ def main():
     if args.makePlots:
         print('Generating plots...\n')
         for i, event in enumerate(events):
-            plotEvent(event, i + 1, output_dir, run_number, totalEvents, runConfig)
+            plotEvent(event, output_dir, run_number, totalEvents, runConfig)
             if ((i+1) % 20 == 0) or (i+1 == len(events)):
                 printProgressBar (i+1, len(events), suffix=f'{i+1}/{len(events)}')
         print('\n')
-    # calculate average ADC per channel
-    
+
+    # plot average ADC per channel
+    plotEvent(averageADC(events), output_dir, run_number, totalEvents, runConfig, avg=True)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ def get_emcal_layout(prompt):
             elif len(row) == 0 and i == 0:
                 for j in range(4):
                     layout.append('oooo')
+                    print('oooo')
                 done = True
                 break
             else:
@@ -39,9 +40,9 @@ def get_hodo_layout(prompt):
             print(f"Invalid row. Each row must be exactly 4 characters long and contain only 'o', 'x', 'T', or 'V'.")
     return layout
 
-def write_config_file(filename, top_rows, main_detector, bottom_rows, t_thresh, v_thresh):
-    with open(filename, 'w') as file:
-        file.write("EMCAL Run Layout\n")
+def write_config_file(name, top_rows, main_detector, bottom_rows, t_thresh, v_thresh):
+    with open(f'{name}.cfg', 'w') as file:
+        file.write(f"{name}\n")
         file.write("Modify the diagram below to represent the detector channels included in your run\n")
         file.write("(exact spacing needs not be perserved)\n")
         file.write("\n")
@@ -72,7 +73,7 @@ def write_config_file(filename, top_rows, main_detector, bottom_rows, t_thresh, 
 
 def main():
     print("Create Detector Configuration File")
-    filename = input("Enter the configuration file name: ").strip()
+    name = input("Give this configuration a short, descriptive title: ").replace(" ", "").strip()
 
     print("Use 'o' for enabled channels, 'x' for disabled channels, 'T' for triggered channels, 'V' for vetoed channels.")
 
@@ -85,9 +86,9 @@ def main():
     t_thresh = get_threshold("Enter the T-thresh value: ")
     v_thresh = get_threshold("Enter the V-thresh value: ")
     
-    write_config_file(filename, top_rows, main_detector, bottom_rows, t_thresh, v_thresh)
+    write_config_file(f'{name}', top_rows, main_detector, bottom_rows, t_thresh, v_thresh)
     
-    print(f"\nConfiguration file '{filename}' created successfully!")
+    print(f"\nConfiguration file '{name}.cfg' created successfully!")
 
 if __name__ == "__main__":
     main()

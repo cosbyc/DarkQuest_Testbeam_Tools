@@ -11,6 +11,7 @@ def readConfig(config_filename):
     config = []
     t_thresh = 0
     v_thresh = 0
+    name = lines[0]
     for line in lines[10:]:
         stripped = line.strip()
         if stripped.startswith('#'):
@@ -38,6 +39,7 @@ def readConfig(config_filename):
             bottom_hodo_cfg.append(row.split())
 
     allConfiguration= {
+        'name' : name,
         'triggerThresh' : t_thresh,
         'vetoThresh' : v_thresh,
         'emcalCfg' : emcal_cfg,
