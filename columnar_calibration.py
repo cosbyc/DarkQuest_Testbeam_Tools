@@ -10,8 +10,9 @@ import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image, transforms
 from src.plot_event import plotEvent
 from src.read_config import readConfig
+from src.read_file import getEvents
 from src.unscrambler import trigIdSort, bufferSort
-from analyzer import analyzeRun, averageADC
+from analyzer import averageADC, applyCuts
 import glob
 
 def main():
@@ -39,7 +40,9 @@ def main():
         runConfig["triggerThresh"] = args.threshold
         runConfig["vetoThresh"] = args.veto
         
-        events, totalEvents = analyzeRun(args.filename, runConfig)
+        events, totalEvents = getEvents(args.filename, runConfig)
+        events = applyCuts(events, runConfig)
+        
         for j in range(4):
             channelAverages[j][i] =  averageADC(events)['emcal'][j][i]
         includedEvents.append(len(events))

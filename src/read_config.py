@@ -11,8 +11,10 @@ def readConfig(config_filename, talk = True):
     config = []
     t_thresh = 0
     v_thresh = 0
+    s_thresh = 0
+    tag=''
     name = lines[0]
-    for line in lines[10:]:
+    for line in lines[11:]:
         stripped = line.strip()
         if stripped.startswith('#'):
             continue
@@ -20,8 +22,12 @@ def readConfig(config_filename, talk = True):
             t_thresh = int(stripped.split('=')[1])
         elif 'V-thresh' in stripped:
             v_thresh = int(stripped.split('=')[1])
+        elif 'S-thresh' in stripped:
+            s_thresh = int(stripped.split('=')[1])
+        elif 'Tag:' in stripped:
+            tag = stripped[4:]
         elif stripped:
-            if stripped[0] in 'TxVo|':
+            if stripped[0] in 'TxVo|S':
                 config.append(stripped)
 
     emcal_cfg = []
@@ -40,8 +46,10 @@ def readConfig(config_filename, talk = True):
 
     allConfiguration= {
         'name' : name,
+        'tag' : tag,
         'triggerThresh' : t_thresh,
         'vetoThresh' : v_thresh,
+        'sumThresh' : s_thresh,
         'emcalCfg' : emcal_cfg,
         'topHodoCfg' : top_hodo_cfg[0],
         'bottomHodoCfg' : bottom_hodo_cfg[0],
@@ -57,10 +65,13 @@ def readConfig(config_filename, talk = True):
             print(f'Loading {config_filename}...\n')
             os.system(f'cp {config_filename} .previous_run.cfg')
             print('Detector configuration:')
-            for i in range(10,18):
+            for i in range(11,19):
                 print(lines[i],end='')
             print('')
-            print(f'Trigger threshold = {t_thresh}, Veto threshold = {v_thresh}')
+            print(f'Trigger threshold = {t_thresh}')
+            print(f'Veto threshold = {v_thresh}')
+            print(f'Sum threshold = {s_thresh}\n')
+
         if ((allConfiguration['topHodoEnabled'] or allConfiguration['botHodoEnabled']) and (talk==True)):
             print('Hodoscope channels enabled in config. Expecting a run file with external trigger info.')
         elif(talk==True):

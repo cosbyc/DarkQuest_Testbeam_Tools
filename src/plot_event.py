@@ -4,11 +4,14 @@ import matplotlib
 import os
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image
+import copy
 
-def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None, tag=''):
+def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None, tag='', gain="HG"):
     if avg==False:
         event_number= event['event_number']
     emcal = event['emcal']
+
+    tag = config['tag']
 
     # Figure out which side the hodoscopes should be drawn on, if at all
     minihodoT = minihodoB = []; topHodoCfg = bottomHodoCfg = ''; topHodoSide = botHodoSide = 0
@@ -29,9 +32,9 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
 
     if avg == False:
         evn_string = str(event_number).zfill(len(str(total_events)))
-        fig.suptitle(f'Run {run_number}, Event {evn_string}\n{config["name"]}')
+        fig.suptitle(f'Run {run_number}, {gain.upper()}, Event {evn_string}\n{config["name"]}')
     else:
-        fig.suptitle(f'Run {run_number}, Average ADC [{passingEvents}/{total_events} events]\n{config["name"]}\n{tag}')
+        fig.suptitle(f'Run {run_number}, {gain.upper()} Average ADC [{passingEvents}/{total_events} events]\n{config["name"]}\n{tag}')
         
 
     gs = gridspec.GridSpec(3,2, height_ratios=[0.2,1,0.2], width_ratios=[1,1])
@@ -40,7 +43,9 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
 
     ax1 = plt.subplot(gs[1,:])
     #cax = ax1.imshow(emcal, cmap='viridis', vmin = 0, vmax = 250)
-    cax = ax1.imshow(emcal, cmap='viridis', norm=matplotlib.colors.LogNorm(vmin = 5, vmax = 8000))
+    cmap1 = copy.copy(plt.get_cmap('viridis'))
+    cmap1.set_bad(cmap1.colors[0])
+    cax = ax1.imshow(emcal, cmap=cmap1, norm=matplotlib.colors.LogNorm(vmin = 0, vmax = 8000))
     #cax = ax1.imshow(emcal, cmap='viridis', norm=matplotlib.colors.LogNorm())
     plt.axis('off')
     #fig.colorbar(cax)
@@ -51,14 +56,14 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
     axt = plt.subplot(gs[0,topHodoSide])
     plt.margins(y=0)
     plt.axis('off')
-    caxt = axt.imshow(np.expand_dims(minihodoT, axis=0), cmap='viridis', aspect = 0.35, vmin = 0, vmax = 5000)
+    caxt = axt.imshow(np.expand_dims(minihodoT, axis=0), cmap='viridis', aspect = 0.35, vmin = 1, vmax = 5000)
     for i, val in enumerate(minihodoT):
         axt.text( i, 0 , f'{val}', ha='center', va='center', color='white')
             
     axb = plt.subplot(gs[2,botHodoSide])
     plt.axis('off')
     plt.tight_layout(pad=-5)
-    caxb = axb.imshow(np.expand_dims(minihodoB, axis=0), cmap='viridis', aspect = 0.35, vmin = 0, vmax = 5000)
+    caxb = axb.imshow(np.expand_dims(minihodoB, axis=0), cmap='viridis', aspect = 0.35, vmin = 1, vmax = 5000)
     for i, val in enumerate(minihodoB):
         axb.text( i, 0 , f'{val}', ha='center', va='center', color='white')
     axb.set_adjustable('box')

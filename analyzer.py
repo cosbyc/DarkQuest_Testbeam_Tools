@@ -9,8 +9,10 @@ import os
 import matplotlib.gridspec as gridspec 
 from matplotlib import pyplot, image, transforms
 from src.plot_event import plotEvent
+from src.plot_histos import plotHistograms
 from src.read_config import readConfig
 from src.unscrambler import trigIdSort, bufferSort
+from src.read_file import getEvents, getEventsTail
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -20,98 +22,52 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration == total: 
         print('')
 
-        
-def analyzeRun(filename, config):
-    with open(filename, 'r') as file:
-        lines = file.readlines()
 
+def applyCuts(events, config):
     triggerThresh = config['triggerThresh']
     vetoThresh = config['vetoThresh']
+    sumThresh = config['sumThresh']
     emcalCfg = config['emcalCfg']
     topHodoCfg = config['topHodoCfg']
     bottomHodoCfg = config['bottomHodoCfg']
     topHodoEnabled = config['topHodoEnabled']
     botHodoEnabled = config['botHodoEnabled']
 
-    events = []
-    totalEvents = 0
-    
-    current_trigger = None
-    
-    failedChannels = 0
-    for line in lines[9:]:
-        parts = line.strip().split()
-        
-        # Check if the line starts a new EMCal event
-        if len(parts) == 7 and int(parts[0]) == 1:
-            if current_trigger:
-                # saving previous event before starting next one.
-                # checking trigger and veto conditions
-                totalEvents+=1
-                if failedChannels == 0:
-                    current_trigger['event_number'] = totalEvents
-                    events.append(current_trigger)
-                else:
-                    failedChannels = 0 
-            current_trigger = {
-                'event_number': 0,
-                'emcal': np.zeros((4, 4), dtype=int)
-            }
-            if topHodoEnabled:
-                current_trigger.update({'minihodoT': np.zeros(2, dtype=int)})
-            if botHodoEnabled:
-                current_trigger.update({'minihodoB': np.zeros(2, dtype=int)})
-            
-            board = int(parts[0])
-            channel = int(parts[1])
-            amplitude = int(parts[3]) #HG
-            if  amplitude > 8000:
-                amplitude = int(parts[2])*100 #LG
-            row, col = remap(channel)
+    passed_events = []
+    for event in events:
+        failedEvent = False
 
-            if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh):
-                failedChannels += 1
-            if (emcalCfg[row][col] != 'x'):
-                current_trigger['emcal'][row, col] = amplitude
-        
-        # all other lines, including minihodos
-        elif len(parts) >= 4:
-            board = int(parts[0])
-            channel = int(parts[1])
-            amplitude = int(parts[3]) #HG
-            if amplitude > 8050:
-                amplitude = int(parts[2])*100 #LG
-            
-            if board == 1:
-                row, col = remap(channel)
+        sectorSum = 0
+        for row in range(4):
+            for col in range(4):
+                amplitude = event['emcal'][row, col]
                 if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh):
-                    failedChannels+=1
-                if (emcalCfg[row][col] != 'x'):
-                    current_trigger['emcal'][row, col] = amplitude
-                
-            elif board == 0 and topHodoEnabled and channel < 2:
-                amplitude = int(parts[2]) #LG
-                for j in range(len(topHodoCfg)):
-                    if topHodoCfg[j] == 'x':
-                        #print(f'top saw an x on {j} at channel {channel}')
-                        continue
-                    #if ((topHodoCfg[channel % 2] == 'T' and amplitude < triggerThresh) or (topHodoCfg[channel % 2] == 'V' and amplitude > vetoThresh)):
-                    if ((topHodoCfg[j] == 'T' and amplitude < triggerThresh) or (topHodoCfg[j] == 'V' and amplitude > vetoThresh)) and (channel % 2) == (j % 2):
-                        failedChannels+=1
-                    #print(f'{topHodoCfg[j]} == "T" and {amplitude} < triggerThresh) or ({topHodoCfg[j]} == "V" and {amplitude} > vetoThresh)):')
-                    current_trigger['minihodoT'][channel % 2] = amplitude
-                    
-            elif board == 0 and botHodoEnabled and channel >= 2:
-                amplitude = int(parts[2]) #LG
-                for j in range(len(bottomHodoCfg)):
-                    if bottomHodoCfg[j] == 'x':
-                        #print(f'bottom saw an x on {j} at channel {channel}')
-                        continue
-                    if ((bottomHodoCfg[j] == 'T' and amplitude < triggerThresh) or (bottomHodoCfg[j] == 'V' and amplitude > vetoThresh)) and (channel % 2) == (j % 2):
-                        failedChannels+=1
-                    #print(f'{bottomHodoCfg[j]} == "T" and {amplitude} < triggerThresh) or ({bottomHodoCfg[j]} == "V" and {amplitude} > vetoThresh)):')
-                    current_trigger['minihodoB'][channel % 2] = amplitude
-    return events, totalEvents
+                    failedEvent = True
+                if emcalCfg[row][col] == 'S':
+                    sectorSum += amplitude
+        if sectorSum < sumThresh:
+            failedEvent = True
+        
+        if topHodoEnabled:
+            for j in range(4):
+                if topHodoCfg[j] == 'x':
+                    continue
+                amplitude = event['minihodoT'][j%2]
+                if (((topHodoCfg[j] == 'T' and amplitude < triggerThresh) or (topHodoCfg[j] == 'V' and amplitude > vetoThresh))):
+                    failedEvent = True
+
+        if botHodoEnabled:
+            for j in range(4):
+                if bottomHodoCfg[j] == 'x':
+                    continue
+                amplitude = event['minihodoB'][j%2]
+                if (((bottomHodoCfg[j] == 'T' and amplitude < triggerThresh) or (bottomHodoCfg[j] == 'V' and amplitude > vetoThresh))):
+                    failedEvent = True
+
+        if failedEvent is False:
+            passed_events.append(event)
+
+    return passed_events
 
 def remap(channel):
     rowOffset = colOffset = 0
@@ -147,42 +103,56 @@ def main():
     parser.add_argument('filename', type=str, help='Janus event list')
     parser.add_argument('-p', '--makePlots', action='store_true', dest='makePlots', help='Create maps for all events') 
     parser.add_argument('-c', '--configFile', dest='configFile', type=str, help='The name of the .cfg file for the input run file', default='.previous_run.cfg')
+    parser.add_argument('-g', '--gain', dest='gain', type=str, help='Analyze high gain or low gain ', default=None)
     args = parser.parse_args()
 
     runConfig = readConfig(args.configFile)
-    run_number = args.filename.split('Run')[1].split('_')[0]
-    output_dir = f'output/run{run_number}_{runConfig["name"][:-1]}'
-    os.makedirs(output_dir, exist_ok=True)
+    runNumber = args.filename.split('Run')[1].split('_')[0]
+    outputDir = f'output/run{runNumber}_{runConfig["name"][:-1]}'
+    os.makedirs(outputDir, exist_ok=True)
 
-    events = totalEvents = None
+    gain = args.gain
+    if gain == None:
+        print('No gain setting specified. Assuming high gain.')
+        gain = 'HG'
+        
+    allEvents =  None
     if (runConfig['topHodoEnabled'] and runConfig['botHodoEnabled']):
-        #trigIdSort(args.filename, run_number) # DOES NOT WORK: DO NOT USE
-        #events, totalEvents = analyzeRun(f'runFiles/Run{run_number}_trigID_sorted.txt', runConfig)
-        bufferSort(args.filename, run_number)
-        events, totalEvents = analyzeRun(f'runFiles/Run{run_number}_list_buffer_sorted.txt', runConfig)
+        #trigIdSort(args.filename, runNumber) # DOES NOT WORK: DO NOT USE
+        #events, totalEvents = analyzeRun(f'runFiles/Run{runNumber}_trigID_sorted.txt', runConfig)
+        bufferSort(args.filename, runNumber)
+        allEvents = getEvents(f'runFiles/Run{runNumber}_list_buffer_sorted.txt', runConfig, gain=gain)
     else:
-        events, totalEvents = analyzeRun(args.filename, runConfig)
-    
+        #allEvents = getEventsTail(args.filename, runConfig, gain=gain, timeWindow=60)
+        allEvents = getEvents(args.filename, runConfig, gain=gain)
+        
+    events = applyCuts(allEvents, runConfig)
+
     if len(events) == 0:
         print("No events passing selections\n")
         exit()
     else:
-        print(f'{len(events)}/{totalEvents} events passed the selections.\n')
+        print(f'{len(events)}/{len(allEvents)} events passed the selections.\n')
     
+    # plot average ADC per channel
+    plt.cla()
+    plt.close()
+    plotEvent(averageADC(events), outputDir, runNumber, len(allEvents), runConfig, avg=True, passingEvents = len(events), gain=gain)
+
+    
+    # produce histograms for all unmasked channels
+    plotHistograms(events, runConfig, runNumber, outputDir, gain=gain)
+
     # plotting loop
     if args.makePlots:
         print('Generating plots...\n')
         for i, event in enumerate(events):
-            plotEvent(event, output_dir, run_number, totalEvents, runConfig)
+            plotEvent(event, outputDir, runNumber, len(allEvents), runConfig, gain=gain)
             if ((i+1) % 20 == 0) or (i+1 == len(events)):
                 printProgressBar (i+1, len(events), suffix=f'{i+1}/{len(events)}')
         print('\n')
 
-    # plot average ADC per channel
-    plt.cla()
-    plt.close()
-    plotEvent(averageADC(events), output_dir, run_number, totalEvents, runConfig, avg=True, passingEvents = len(events))
 
-
+    
 if __name__ == "__main__":
     main()
