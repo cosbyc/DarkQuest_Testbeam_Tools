@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 import os
 import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image
 
-def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None):
+def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None, tag=''):
     if avg==False:
         event_number= event['event_number']
     emcal = event['emcal']
@@ -30,7 +31,7 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
         evn_string = str(event_number).zfill(len(str(total_events)))
         fig.suptitle(f'Run {run_number}, Event {evn_string}\n{config["name"]}')
     else:
-        fig.suptitle(f'Run {run_number}, Average ADC [{passingEvents}/{total_events} events]\n{config["name"]}')
+        fig.suptitle(f'Run {run_number}, Average ADC [{passingEvents}/{total_events} events]\n{config["name"]}\n{tag}')
         
 
     gs = gridspec.GridSpec(3,2, height_ratios=[0.2,1,0.2], width_ratios=[1,1])
@@ -38,7 +39,9 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
     ax1 = plt.subplot(gs[1,:])
-    cax = ax1.imshow(emcal, cmap='viridis', vmin = 0, vmax = 250)
+    #cax = ax1.imshow(emcal, cmap='viridis', vmin = 0, vmax = 250)
+    cax = ax1.imshow(emcal, cmap='viridis', norm=matplotlib.colors.LogNorm(vmin = 5, vmax = 8000))
+    #cax = ax1.imshow(emcal, cmap='viridis', norm=matplotlib.colors.LogNorm())
     plt.axis('off')
     #fig.colorbar(cax)
     for (i, j), val in np.ndenumerate(emcal):

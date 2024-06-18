@@ -1,6 +1,6 @@
 import os
 
-def readConfig(config_filename):
+def readConfig(config_filename, talk = True):
     try:
         with open(config_filename, 'r') as file:
             lines = file.readlines()
@@ -49,20 +49,21 @@ def readConfig(config_filename):
         'botHodoEnabled' : not all(channel == 'x' for channel in bottom_hodo_cfg[0])
     }
 
-    if config_filename == '.previous_run.cfg':
-        print(f'No config file provided.\n')
-        print(f'Loading previous settings...\n')
-    else:
-        print(f'Loading {config_filename}...\n')
-        os.system(f'cp {config_filename} .previous_run.cfg')
-    print('Detector configuration:')
-    for i in range(10,18):
-        print(lines[i],end='')
-    print('')
-    print(f'Trigger threshold = {t_thresh}, Veto threshold = {v_thresh}')
-    if allConfiguration['topHodoEnabled'] or allConfiguration['botHodoEnabled']:
-        print('Hodoscope channels enabled in config. Expecting a run file with external trigger info.')
-    else:
-        print('Hodoscopes disabled in config. Expecting a self triggered run file.')
-    print('')
+    if talk == True:
+        if config_filename == '.previous_run.cfg':
+            print(f'No config file provided.\n')
+            print(f'Loading previous settings...\n')
+        else:
+            print(f'Loading {config_filename}...\n')
+            os.system(f'cp {config_filename} .previous_run.cfg')
+            print('Detector configuration:')
+            for i in range(10,18):
+                print(lines[i],end='')
+            print('')
+            print(f'Trigger threshold = {t_thresh}, Veto threshold = {v_thresh}')
+        if ((allConfiguration['topHodoEnabled'] or allConfiguration['botHodoEnabled']) and (talk==True)):
+            print('Hodoscope channels enabled in config. Expecting a run file with external trigger info.')
+        elif(talk==True):
+            print('Hodoscopes disabled in config. Expecting a self triggered run file.')
+        print('')
     return allConfiguration

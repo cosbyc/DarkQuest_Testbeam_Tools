@@ -10,7 +10,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image, transforms
 from src.plot_event import plotEvent
 from src.read_config import readConfig
-from src.unscrambler import fixTriggerOrder
+from src.unscrambler import trigIdSort, bufferSort
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
@@ -65,6 +65,8 @@ def analyzeRun(filename, config):
             board = int(parts[0])
             channel = int(parts[1])
             amplitude = int(parts[3]) #HG
+            if  amplitude > 8000:
+                amplitude = int(parts[2])*100 #LG
             row, col = remap(channel)
 
             if (emcalCfg[row][col] == 'T' and amplitude < triggerThresh) or (emcalCfg[row][col] == 'V' and amplitude > vetoThresh):
@@ -76,7 +78,9 @@ def analyzeRun(filename, config):
         elif len(parts) >= 4:
             board = int(parts[0])
             channel = int(parts[1])
-            amplitude = int(parts[3])
+            amplitude = int(parts[3]) #HG
+            if amplitude > 8050:
+                amplitude = int(parts[2])*100 #LG
             
             if board == 1:
                 row, col = remap(channel)
@@ -150,9 +154,14 @@ def main():
     output_dir = f'output/run{run_number}_{runConfig["name"][:-1]}'
     os.makedirs(output_dir, exist_ok=True)
 
-    fixTriggerOrder(args.filename)    
-    events, totalEvents = analyzeRun('tmp.txt', runConfig)
-    os.system('rm tmp.txt')
+    events = totalEvents = None
+    if (runConfig['topHodoEnabled'] and runConfig['botHodoEnabled']):
+        #trigIdSort(args.filename, run_number) # DOES NOT WORK: DO NOT USE
+        #events, totalEvents = analyzeRun(f'runFiles/Run{run_number}_trigID_sorted.txt', runConfig)
+        bufferSort(args.filename, run_number)
+        events, totalEvents = analyzeRun(f'runFiles/Run{run_number}_list_buffer_sorted.txt', runConfig)
+    else:
+        events, totalEvents = analyzeRun(args.filename, runConfig)
     
     if len(events) == 0:
         print("No events passing selections\n")
