@@ -11,7 +11,8 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
         event_number= event['event_number']
     emcal = event['emcal']
 
-    tag = config['tag']
+    if tag =='':
+        tag = config['tag']
 
     # Figure out which side the hodoscopes should be drawn on, if at all
     minihodoT = minihodoB = []; topHodoCfg = bottomHodoCfg = ''; topHodoSide = botHodoSide = 0
@@ -45,12 +46,15 @@ def plotEvent(event, output_dir, run_number, total_events, config, avg=False, pa
     #cax = ax1.imshow(emcal, cmap='viridis', vmin = 0, vmax = 250)
     cmap1 = copy.copy(plt.get_cmap('viridis'))
     cmap1.set_bad(cmap1.colors[0])
-    cax = ax1.imshow(emcal, cmap=cmap1, norm=matplotlib.colors.LogNorm(vmin = 0, vmax = 8000))
+    cax = ax1.imshow(emcal, cmap=cmap1, norm=matplotlib.colors.LogNorm(vmin = 5, vmax = 8000))
     #cax = ax1.imshow(emcal, cmap='viridis', norm=matplotlib.colors.LogNorm())
     plt.axis('off')
     #fig.colorbar(cax)
     for (i, j), val in np.ndenumerate(emcal):
-        ax1.text(j, i, f'{round(val,2)}', ha='center', va='center', color='white')
+        if val < 2000:
+            ax1.text(j, i, f'{round(val,2)}', ha='center', va='center', color='white')
+        else:
+            ax1.text(j, i, f'{round(val,2)}', ha='center', va='center', color='grey')
         #if avg == False:
         #    ax1.text(j, i, f'{val}', ha='center', va='center', color='white')
     axt = plt.subplot(gs[0,topHodoSide])
