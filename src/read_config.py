@@ -12,6 +12,9 @@ def readConfig(config_filename, talk = True):
     t_thresh = 0
     v_thresh = 0
     s_thresh = 0
+    s_max = 0
+    timerange = [-1,-1]
+    
     tag=''
     name = lines[0]
     for line in lines[11:]:
@@ -24,6 +27,8 @@ def readConfig(config_filename, talk = True):
             v_thresh = int(stripped.split('=')[1])
         elif 'S-thresh' in stripped:
             s_thresh = int(stripped.split('=')[1])
+        elif 'S-max' in stripped:
+            s_max = int(stripped.split('=')[1])
         elif 'Tag:' in stripped:
             tag = stripped[4:]
         elif stripped:
@@ -50,6 +55,7 @@ def readConfig(config_filename, talk = True):
         'triggerThresh' : t_thresh,
         'vetoThresh' : v_thresh,
         'sumThresh' : s_thresh,
+        'sumMax' : s_max,
         'emcalCfg' : emcal_cfg,
         'topHodoCfg' : top_hodo_cfg[0],
         'bottomHodoCfg' : bottom_hodo_cfg[0],
@@ -70,11 +76,13 @@ def readConfig(config_filename, talk = True):
             print('')
             print(f'Trigger threshold = {t_thresh}')
             print(f'Veto threshold = {v_thresh}')
-            print(f'Sum threshold = {s_thresh}\n')
+            print(f'Sum threshold = {s_thresh}')
+            if (s_max < 128400):
+                print(f'Sum max = {s_max}')
 
         if ((allConfiguration['topHodoEnabled'] or allConfiguration['botHodoEnabled']) and (talk==True)):
-            print('Hodoscope channels enabled in config. Expecting a run file with external trigger info.')
+            print('\nHodoscope channels enabled in config. Expecting a run file with external trigger info.')
         elif(talk==True):
-            print('Hodoscopes disabled in config. Expecting a self triggered run file.')
+            print('\nHodoscopes disabled in config. Expecting a self triggered run file.')
         print('')
     return allConfiguration

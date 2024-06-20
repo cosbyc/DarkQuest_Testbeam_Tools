@@ -1,3 +1,4 @@
+
 import warnings
 warnings.simplefilter("ignore", UserWarning)
 
@@ -27,6 +28,8 @@ def applyCuts(events, config):
     triggerThresh = config['triggerThresh']
     vetoThresh = config['vetoThresh']
     sumThresh = config['sumThresh']
+    sumMax = config['sumMax']
+    #timeRange = config['timeRange']
     emcalCfg = config['emcalCfg']
     topHodoCfg = config['topHodoCfg']
     bottomHodoCfg = config['bottomHodoCfg']
@@ -45,8 +48,15 @@ def applyCuts(events, config):
                     failedEvent = True
                 if emcalCfg[row][col] == 'S':
                     sectorSum += amplitude
+
         if sectorSum < sumThresh:
             failedEvent = True
+
+        if event['channelSum'] > sumMax:
+            failedEvent = True
+            
+        #if (((timeRange[0] is not -1) and (event['timestamp'] < timeRange[0])) or ((timeRange[1] is not -1) and (event['timestamp'] > timeRange[1])))
+            #failedEvent = True
         
         if topHodoEnabled:
             for j in range(4):
@@ -127,7 +137,7 @@ def main():
         allEvents = getEvents(args.filename, runConfig, gain=gain)
         
     events = applyCuts(allEvents, runConfig)
-
+    
     if len(events) == 0:
         print("No events passing selections\n")
         exit()

@@ -40,7 +40,8 @@ def main():
         runConfig["triggerThresh"] = args.threshold
         runConfig["vetoThresh"] = args.veto
         
-        events, totalEvents = getEvents(args.filename, runConfig)
+        events = getEvents(args.filename, runConfig)
+        totalEvents = len(events)
         events = applyCuts(events, runConfig)
         
         for j in range(4):

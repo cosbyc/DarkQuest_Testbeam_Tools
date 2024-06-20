@@ -27,12 +27,12 @@ def getEvents(filename, config, gain='HG'):
     currentTrigger = None
 
     lines = lines[9:]
+    channelSum = 0
     
     buffer =[]
     for line in lines:
         parts = line.strip().split()
 
-        
         # Check if the line starts a new EMCal event
         if len(parts) == 7 and int(parts[0]) == 1:
             timestamp = float(parts[4])
@@ -40,11 +40,14 @@ def getEvents(filename, config, gain='HG'):
                 totalEvents += 1
                 currentTrigger['event_number'] = totalEvents
                 currentTrigger['timestamp'] = timestamp
+                currentTrigger['channelSum'] = channelSum
                 events.append(currentTrigger)
+                channelSum = 0
             currentTrigger = {
                 'event_number': 0,
                 'emcal': np.zeros((4, 4), dtype=int),
-                'timestamp': timestamp
+                'timestamp': timestamp,
+                'channelSum': channelSum
             }
             if topHodoEnabled:
                 currentTrigger.update({'minihodoT': np.zeros(2, dtype=int)})
@@ -56,6 +59,7 @@ def getEvents(filename, config, gain='HG'):
             amplitude = int(parts[3])  # HG
             if gain.lower()=='lg':
                 amplitude = int(parts[2]) # LG
+            channelSum += amplitude
             row, col = remap(channel)
             currentTrigger['emcal'][row, col] = amplitude
         
@@ -66,7 +70,8 @@ def getEvents(filename, config, gain='HG'):
             amplitude = int(parts[3])  # HG
             if gain.lower()=='lg':
                 amplitude = int(parts[2]) # LG
-            
+            channelSum += amplitude
+                
             if board == 1:
                 row, col = remap(channel)
                 currentTrigger['emcal'][row, col] = amplitude
@@ -82,7 +87,9 @@ def getEvents(filename, config, gain='HG'):
     if currentTrigger:
         totalEvents += 1
         currentTrigger['event_number'] = totalEvents
-        events.append(currentTrigger)
+        currentTrigger['timestamp'] = timestamp
+        currentTrigger['channelSum'] = channelSum
+    events.append(currentTrigger)
 
     
     return events
@@ -110,6 +117,8 @@ def getEventsTail(filename, config, timeWindow, gain='HG'):
     buffer = []
     ready = False
 
+    channelSum = 0
+    
     for line in data_lines:
         parts = line.strip().split()
 
@@ -130,7 +139,8 @@ def getEventsTail(filename, config, timeWindow, gain='HG'):
                 currentTrigger = {
                     'event_number': 0,
                     'emcal': np.zeros((4, 4), dtype=int),
-                    'timestamp': timestamp
+                    'timestamp': timestamp,
+                    'channelSum': channelSum                    
                 }
                 if topHodoEnabled:
                     currentTrigger.update({'minihodoT': np.zeros(2, dtype=int)})
@@ -145,9 +155,9 @@ def getEventsTail(filename, config, timeWindow, gain='HG'):
                 board = int(buffered_parts[0])
                 channel = int(buffered_parts[1])
                 amplitude = int(buffered_parts[3])  # HG
-                if amplitude > 8000:
-                    amplitude = int(buffered_parts[2]) * 100  # LG
-
+                if gain.lower()=='lg':
+                    amplitude = int(buffered_parts[2])  # LG
+                channelSum += amplitude
                 if board == 1:
                     row, col = remap(channel)
                     currentTrigger['emcal'][row, col] = amplitude
@@ -164,6 +174,7 @@ def getEventsTail(filename, config, timeWindow, gain='HG'):
                 totalEvents += 1
                 currentTrigger['event_number'] = totalEvents
                 currentTrigger['timestamp'] = timestamp
+                currentTrigger['channelSum'] = channelSum
                 events.append(currentTrigger)
                 currentTrigger = None
 
@@ -174,6 +185,8 @@ def getEventsTail(filename, config, timeWindow, gain='HG'):
     if currentTrigger and (timeWindow is None or len(events) == 0 or (events[0]['timestamp'] - currentTrigger['timestamp']) <= (timeWindow * 1000000.0)):
         totalEvents += 1
         currentTrigger['event_number'] = totalEvents
+        currentTrigger['timestamp'] = timestamp
+        currentTrigger['channelSum'] = channelSum
         events.append(currentTrigger)
 
     return events
