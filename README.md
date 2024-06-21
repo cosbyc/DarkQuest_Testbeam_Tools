@@ -23,4 +23,4 @@ To see a summary of an active run, type:
 ```
 python3 monitoring.py <current_Janus_event_list>.txt (-c <configuration_file>.cfg)
 ```
-If no configuration file is provided, it will default to an inclusive analysis of all events recorded within the last ten seconds (approximately the length of the spill), updating every minute. To align the analysis window with the beam, wait until approximately 5 seconds after the spill, and press "Sync"
+If no configuration file is provided, it will default to an inclusive analysis of all events recorded within the last ten seconds (approximately the length of the spill), updating every minute. To align the analysis window with the beam, wait until about 5 seconds after the spill, and press "Sync"
