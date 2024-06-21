@@ -118,7 +118,7 @@ def loop(inputFilename, config, outputDir, labelList, root):
                 labelList[1].config(text=f'Collecting new spill...')
                 
         seconds +=1
-        if seconds > 9:
+        if seconds > (spillWindow-4):
                 labelList[1].config(text=f'Expecting a spill in {60- seconds} seconds')
         else:
                 labelList[1].config(text=f'Collecting new spill{"."*(seconds%3+1)}')
@@ -153,10 +153,8 @@ def loop(inputFilename, config, outputDir, labelList, root):
                 
         else:
                 labelList[5].config(text=f'Producing last spill plots...')
-
-        
-
-        if seconds == spillWindow:
+               
+        if seconds == (spillWindow-3):
                 spillID = findNextSpillID(outputDir)
                 spillPath = f'{outputDir}/images/Spill{spillID}'
                 os.makedirs(spillPath, exist_ok=True)
@@ -172,6 +170,8 @@ def loop(inputFilename, config, outputDir, labelList, root):
                 labelList[1].config(text=f'Collecting new spill...')
                 seconds = 0
 
+
+                
                 # Clear out old images, so the folder doesn't blow up
                 if spillID % 49 == 0:
                         print("About to delete image files from spills older than 30!")
