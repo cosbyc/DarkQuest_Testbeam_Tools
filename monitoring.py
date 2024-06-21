@@ -22,19 +22,21 @@ import PIL.Image
 from time import sleep
 import random
 import glob
-
+import shutil
 
 import warnings
 warnings.simplefilter("ignore", UserWarning)
 
 plt.switch_backend('agg')
 seconds = 0
-spillID = 1
+spillID = 0
 spillPath = ''
 working = False
 currentMax = 0
 prevMax =''
 started = False
+spillWindow = 10
+
 
 # Button is clicked
 def startRun():
@@ -53,8 +55,8 @@ def sync():
                 seconds = -1
 
 def findNextSpillID(outputDir):
-        nextSpillID = 1
-        while (f'Spill{nextSpillID}' in os.listdir(outputDir)):
+        nextSpillID = 0
+        while (f'Spill{nextSpillID}_list.txt' in os.listdir(f'{outputDir}/logs')):
                 nextSpillID +=1
         return nextSpillID
 
@@ -69,7 +71,8 @@ def threadPlot(func, inputFilename, config, outputDir):
         taskThread.start()
     
 def readSpill(inputFilename, config, outputDir):
-    allEvents = getEventsTail(inputFilename, config, timeWindow = 10)
+    global spillWindow
+    allEvents = getEventsTail(inputFilename, config, timeWindow = spillWindow, log = True, outPath = outputDir)
     passedEvents = applyCuts(allEvents, config)
     averageEvent = averageADC(passedEvents)
     runNumber = inputFilename.split('Run')[1].split('_')[0]
@@ -100,7 +103,7 @@ def loop(inputFilename, config, outputDir, labelList, root):
         global currentMax
         global prevMax
         global started
-
+        global spillWindow
 
         
         if started == False:
@@ -109,58 +112,77 @@ def loop(inputFilename, config, outputDir, labelList, root):
                 button.place(x=400, y=380)
                 button.wait_variable(var)
                 startRun()
+                root.geometry('1200x900')
                 button.configure(text = "Sync", command = sync)
-                labelList[0].config(text=f'Spill: {spillID}')
-
+                labelList[0].config(text=f'Previous spill: XX')
+                labelList[1].config(text=f'Collecting new spill...')
                 
         seconds +=1
-        labelList[1].config(text=f'Updating in {60- seconds} seconds.')
+        if seconds > 9:
+                labelList[1].config(text=f'Expecting a spill in {60- seconds} seconds')
+        else:
+                labelList[1].config(text=f'Collecting new spill{"."*(seconds%3+1)}')
         if working == False:
                 labelList[5].config(text=f'')
+                avgADC = makeImage(f'{spillPath}/average_ADC.png', 250, 400, root)
+                labelList[2].configure(image=avgADC)
+                labelList[2].image = avgADC
+                labelList[2].place(x=54, y=34)
+                
+                sumHist = makeImage(f'{spillPath}/channel_sum_histogram.png', 530, 365, root)
+                labelList[3].configure(image=sumHist)
+                labelList[3].image = sumHist
+                labelList[3].place(x=54, y=480)
+                
+                maxHistPath = f'{spillPath}/channel_{str(currentMax).zfill(2)}_histogram.png'
+                maxHist = makeImage(maxHistPath, 530, 365, root)
+                labelList[6].configure(image=maxHist)
+                labelList[6].image = maxHist
+                labelList[6].place(x=650, y=480)
+
+                randomEventsPaths = glob.glob(f'{spillPath}/event*.png')
+                randOne = makeImage(randomEventsPaths[0], 250, 400, root)
+                labelList[7].configure(image=randOne)
+                labelList[7].image = randOne
+                labelList[7].place(x=650, y=34)
+
+                randTwo = makeImage(randomEventsPaths[1], 250, 400, root)
+                labelList[8].configure(image=randTwo)
+                labelList[8].image = randTwo
+                labelList[8].place(x=920, y=34)
+                
         else:
                 labelList[5].config(text=f'Producing last spill plots...')
 
-        avgADC = makeImage(f'{spillPath}/average_ADC.png', 250, 400, root)
-        labelList[2].configure(image=avgADC)
-        labelList[2].image = avgADC
-        labelList[2].place(x=54, y=34)
         
-        sumHist = makeImage(f'{spillPath}/channel_sum_histogram.png', 500, 350, root)
-        labelList[3].configure(image=sumHist)
-        labelList[3].image = sumHist
-        labelList[3].place(x=54, y=480)
 
-        maxHist = makeImage(prevMax, 500, 350, root)                
-        maxHistPath = f'{spillPath}/channel_{str(currentMax).zfill(2)}_histogram.png'
-        if os.path.isfile(maxHistPath):
-                maxHist = makeImage(maxHistPath, 500, 350, root)
-                prevMax = maxHistPath
-        labelList[6].configure(image=maxHist)
-        labelList[6].image = maxHist
-        labelList[6].place(x=650, y=480)
-
-        randomEventsPaths = glob.glob(f'{spillPath}/event*.png')
-        randOne = makeImage(randomEventsPaths[0], 250, 400, root)
-        labelList[7].configure(image=randOne)
-        labelList[7].image = randOne
-        labelList[7].place(x=630, y=34)
-
-        randTwo = makeImage(randomEventsPaths[1], 250, 400, root)
-        labelList[8].configure(image=randTwo)
-        labelList[8].image = randTwo
-        labelList[8].place(x=900, y=34)
-                
-        
-        if seconds % 60 == 0:
+        if seconds == spillWindow:
                 spillID = findNextSpillID(outputDir)
-                spillPath = f'{outputDir}/Spill{spillID}'
-                os.mkdir(spillPath)
-                labelList[0].config(text=f'Spill: {spillID}')
-                seconds = 0
+                spillPath = f'{outputDir}/images/Spill{spillID}'
+                os.makedirs(spillPath, exist_ok=True)
+                labelList[0].config(text=f'Previous spill: {spillID}')
+                labelList[5].config(text=f'Producing last spill plots...')
 
                 if not working:
                         working = True
                         threadPlot(readSpill,inputFilename, config, f'{spillPath}')
+        if seconds % 60 == 0:
+                spillID = findNextSpillID(outputDir)
+                labelList[0].config(text=f'Previous spill: {spillID}')
+                labelList[1].config(text=f'Collecting new spill...')
+                seconds = 0
+
+                # Clear out old images, so the folder doesn't blow up
+                if spillID % 49 == 0:
+                        print("About to delete image files from spills older than 30!")
+                        print(f'Save things you need to keep from {outputDir}/images/')
+                if spillID % 25 == 0:
+                        index = 0
+                        imageDirs = sorted(glob.glob(f'{outputDir}/images/*'), key=os.path.getmtime)
+                        while len(imageDirs) > 50:
+                                shutil.rmtree(imageDirs[0])
+                                imageDirs.pop(0)
+                
         root.after(1000, loop, inputFilename, config, outputDir, labelList, root) 
 
 def startGUI(inputFilename, config, outputDir):
@@ -171,7 +193,7 @@ def startGUI(inputFilename, config, outputDir):
         global prevMax
         
         # Create tkinter window
-        root.geometry('1200x900')
+        root.geometry('1000x500')
         root.configure(background='#A9A9A9')
         root.title('DarkQuest Testbeam DQM')
         
@@ -183,10 +205,10 @@ def startGUI(inputFilename, config, outputDir):
         runNumber = inputFilename.split('Run')[1].split('_')[0]              
         Label(root, text=f'Run: {runNumber}', bg='#A9A9A9', font=('arial', 22, 'normal')).place(x=324, y=224)
         
-        spillTag = Label(root, text=f'Spill: XX', bg='#A9A9A9', font=('arial', 16, 'normal'))
+        spillTag = Label(root, text=f'Previous spill: XX', bg='#A9A9A9', font=('arial', 16, 'normal'))
         spillTag.place(x=324, y=255)
 
-        updateTag = Label(root, text=f'Wait until the spill, count to five and press \'Start\'', bg='#A9A9A9', font=('arial', 16, 'normal'), anchor="e")
+        updateTag = Label(root, text=f'Press \'Start\' in time with the next spill', bg='#A9A9A9', font=('arial', 16, 'normal'), anchor="e")
         updateTag.place(x=324, y=280)
 
         workingTag = Label(root, text=f'', bg='#A9A9A9', font=('arial', 16, 'normal'), anchor="e")
@@ -213,7 +235,7 @@ def startGUI(inputFilename, config, outputDir):
 
         # Generate first plot set
         readSpill(inputFilename, config, f'{spillPath}')
-        labelList[0].config(text=f'Spill: XX')
+        labelList[0].config(text=f'Previous spill: XX')
         prevMax = f'{spillPath}/channel_{str(currentMax).zfill(2)}_histogram.png'
 
         root.after(1000, loop, inputFilename, config, outputDir, labelList, root)  # Schedule first check.        
@@ -255,10 +277,11 @@ def main():
 
     runNumber = args.filename.split('Run')[1].split('_')[0]        
     outputDir = f'output/run{runNumber}_{config["name"]}_live'
-    os.makedirs(outputDir, exist_ok=True)
+    os.makedirs(f'{outputDir}/images', exist_ok=True)
+    os.makedirs(f'{outputDir}/logs', exist_ok=True)
 
     spillID = findNextSpillID(outputDir)
-    spillPath = f'{outputDir}/Spill{spillID}'
+    spillPath = f'{outputDir}/images/Spill{spillID}'
     os.makedirs(f'{spillPath}', exist_ok=True)
     
     startGUI(inputFilename, config, outputDir)

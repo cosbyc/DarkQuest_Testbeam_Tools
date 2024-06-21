@@ -97,7 +97,7 @@ def getEvents(filename, config):
     
     return events
         
-def getEventsTail(filename, config, timeWindow):
+def getEventsTail(filename, config, timeWindow, log=False, outPath=''):
     with open(filename, 'r') as file:
         lines = file.readlines()
     file.close()
@@ -114,11 +114,19 @@ def getEventsTail(filename, config, timeWindow):
     totalEvents = 0
     currentTrigger = None
 
-    if timeWindow is not None:
-        # Start from the bottom of the file and work upwards
-        data_lines = lines[9:][::-1]
-    else:
-        data_lines = lines[9:]
+    head = lines[:9]
+
+
+    runNumber = spillNumber = 0
+    if log ==True:
+        runNumber = filename.split('Run')[1].split('_')[0]
+        spillNumber = outPath.split('Spill')[1]
+        with open(f'{outPath.split("/images")[0]}/logs/Spill{spillNumber}_list.txt', 'w') as f:
+            for line in head:
+                f.write(line) 
+    
+    # Start from the bottom of the file and work upwards
+    data_lines = lines[9:][::-1]
 
     buffer = []
     ready = False
@@ -156,6 +164,9 @@ def getEventsTail(filename, config, timeWindow):
             # Process the buffered lines
             while buffer:
                 buffered_line = buffer.pop()
+                if log ==True:
+                    with open(f'{outPath.split("/images")[0]}/logs/Spill{spillNumber}_list.txt', 'a') as f:
+                        f.write(buffered_line)                    
                 buffered_parts = buffered_line.strip().split()
 
                 board = int(buffered_parts[0])
@@ -163,8 +174,8 @@ def getEventsTail(filename, config, timeWindow):
                 amplitude = int(buffered_parts[3])  # HG
                 if gain.lower()=='lg':
                     amplitude = int(buffered_parts[2])  # LG
-                channelSum += amplitude
                 if board == 1:
+                    channelSum += amplitude
                     row, col = remap(channel)
                     currentTrigger['emcal'][row, col] = amplitude
 

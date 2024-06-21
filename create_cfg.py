@@ -56,6 +56,10 @@ def get_hodo_layout(prompt):
         if len(row) == 4 and all(c in 'oxTV' for c in row):
             layout.append(list(row))
             break
+        elif len(row) == 0:
+            layout.append('xxxx')
+            print('xxxx')
+            break
         else:
             print(f"Invalid row. Each row must be exactly 4 characters long and contain only 'o', 'x', 'T', or 'V'.")
     return layout
@@ -102,7 +106,7 @@ def main():
 
     print("Use 'o' for enabled channels, 'x' for disabled channels, 'T' for triggered channels, 'V' for vetoed channels, and 'S' for channels that you want to get summed ADC of.")
 
-    top_rows = get_hodo_layout("\nTop Hodoscope Layout (enter 'xxxx' if not using hodoscopes):")
+    top_rows = get_hodo_layout("\nTop Hodoscope Layout (enter 'xxxx' if not using hodoscopes, or press ENTER):")
     
     main_detector = get_emcal_layout("\nEMCal Layout (4x4):")
     
