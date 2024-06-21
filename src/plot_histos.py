@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import statistics
 
-def plotHistograms(events, config, run_number, output_dir, gain='HG'):
+def plotHistograms(events, config, run_number, output_dir, talk=False, tag =''):
     """
     Plots histograms of ADC values for each of the 16 channels and saves them to the output directory.
 
@@ -16,13 +16,12 @@ def plotHistograms(events, config, run_number, output_dir, gain='HG'):
         os.makedirs(output_dir)
 
     
-        
     # Initialize a list of lists to hold ADC values for each channel and the sum
     adc_values = [[] for _ in range(16)]
     emcalCfg = config['emcalCfg']
     adcSum = []
 
-    
+    gain = config['gain']
     # Collect ADC values from each event
     for event in events:
         adcSum.append(event['channelSum'])
@@ -55,7 +54,7 @@ def plotHistograms(events, config, run_number, output_dir, gain='HG'):
 
         plt.figure()
         plt.hist(adc_values[channel], bins=100, color='blue', alpha=0.7, range =(0, 5000))
-        plt.title(f'Run {run_number} {gain} ADC Histogram for Channel {channel} \n{config["tag"]}')
+        plt.title(f'Run {run_number} {gain} ADC Histogram for Channel {channel} \n{config["tag"]} {tag}')
         plt.xlabel('ADC Value')
         plt.ylabel('Counts')
         #plt.xscale('log')
@@ -68,8 +67,8 @@ def plotHistograms(events, config, run_number, output_dir, gain='HG'):
 
 
         
-        
-    print(f"Histograms saved to {output_dir}")
+    if talk:
+        print(f"Histograms saved to {output_dir}")
 
 def remap(channel):
     rowOffset = colOffset = 0

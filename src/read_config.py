@@ -13,6 +13,7 @@ def readConfig(config_filename, talk = True):
     v_thresh = 0
     s_thresh = 0
     s_max = 0
+    gain = 'LG'
     timerange = [-1,-1]
     
     tag=''
@@ -29,6 +30,8 @@ def readConfig(config_filename, talk = True):
             s_thresh = int(stripped.split('=')[1])
         elif 'S-max' in stripped:
             s_max = int(stripped.split('=')[1])
+        elif 'Gain= ' in stripped:
+            gain = stripped.split('=')[1].stripped()
         elif 'Tag:' in stripped:
             tag = stripped[4:]
         elif stripped:
@@ -56,6 +59,7 @@ def readConfig(config_filename, talk = True):
         'vetoThresh' : v_thresh,
         'sumThresh' : s_thresh,
         'sumMax' : s_max,
+        'gain' : gain,
         'emcalCfg' : emcal_cfg,
         'topHodoCfg' : top_hodo_cfg[0],
         'bottomHodoCfg' : bottom_hodo_cfg[0],
@@ -80,6 +84,7 @@ def readConfig(config_filename, talk = True):
             if (s_max < 128400):
                 print(f'Sum max = {s_max}')
 
+            print(f'\nAnalyzing {gain} channel')
         if ((allConfiguration['topHodoEnabled'] or allConfiguration['botHodoEnabled']) and (talk==True)):
             print('\nHodoscope channels enabled in config. Expecting a run file with external trigger info.')
         elif(talk==True):

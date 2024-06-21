@@ -6,7 +6,9 @@ import matplotlib.gridspec as gridspec
 from matplotlib import pyplot, image
 import copy
 
-def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None, tag='', gain="HG"):
+def plotEvent(event, output_dir, run_number, total_events, config, avg=False, passingEvents=None, tag=''):
+    gain =  config['gain']
+
     if avg==False:
         event_number= event['event_number']
     emcal = event['emcal']

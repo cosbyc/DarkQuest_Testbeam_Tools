@@ -5,6 +5,26 @@ def get_threshold(prompt):
             return value
         except ValueError:
             print("Please enter a valid integer.")
+            
+def inputGain(prompt):
+    gain = 'pain'
+    done = False
+    while done == False:
+        gain = input(f"{prompt}").lower().strip()
+        if gain=='h' or gain == 'l':
+            done=True
+        else:
+            print(f"Invalid input. Enter 'H', 'h', 'L', or 'l'.")
+    return gain
+            
+def get_max(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            return value
+        except ValueError:
+            print("No sum max entered...")
+            return 128480
 
 def get_emcal_layout(prompt):
     layout = []
@@ -40,7 +60,7 @@ def get_hodo_layout(prompt):
             print(f"Invalid row. Each row must be exactly 4 characters long and contain only 'o', 'x', 'T', or 'V'.")
     return layout
 
-def write_config_file(name, top_rows, main_detector, bottom_rows, t_thresh, v_thresh, s_thresh, tag):
+def write_config_file(name, top_rows, main_detector, bottom_rows, t_thresh, v_thresh, s_thresh, s_max, gain, tag):
     with open(f'{name}.cfg', 'w') as file:
         file.write(f"{name}\n")
         file.write("Modify the diagram below to represent the detector channels included in your run\n")
@@ -72,6 +92,8 @@ def write_config_file(name, top_rows, main_detector, bottom_rows, t_thresh, v_th
         file.write(f"T-thresh = {t_thresh}\n")
         file.write(f"V-thresh = {v_thresh}\n")
         file.write(f"S-thresh = {s_thresh}\n")
+        file.write(f"S-max = {s_max}\n")
+        file.write(f"Gain = {gain.upper()}G\n")
         file.write(f"Tag: {tag}\n")
 
 def main():
@@ -86,16 +108,19 @@ def main():
     
     bottom_rows = get_hodo_layout("\nBottom Hodoscopes Layout (enter 'xxxx' if not using hodoscopes):")
 
-    t_thresh = v_thresh = s_thresh = -1
+    t_thresh = v_thresh = s_thresh = -1; s_max = 124000
     if (('T' in top_rows[0]) or  ('T' in bottom_rows[0]) or  ('T' in main_detector[0] or  ('T' in main_detector[1]) or  ('T' in main_detector[2]) or  ('T' in main_detector[3]))):
         t_thresh = get_threshold("Enter the T-thresh value: ")
     if (('V' in top_rows[0]) or  ('V' in bottom_rows[0]) or  ('V' in main_detector[0] or  ('V' in main_detector[1]) or  ('V' in main_detector[2]) or  ('V' in main_detector[3]))):
         v_thresh = get_threshold("Enter the V-thresh value: ")
     if (('S' in main_detector[0] or  ('S' in main_detector[1]) or  ('S' in main_detector[2]) or  ('S' in main_detector[3]))):
         s_thresh = get_threshold("Enter the S-thresh value: ")
+    if (('S' in main_detector[0] or  ('S' in main_detector[1]) or  ('S' in main_detector[2]) or  ('S' in main_detector[3]))):
+        s_max = get_max("Enter the S-thresh max (if desired): ")
+    gain = inputGain("Analyze high gain or low gain? (H/L): ")
     tag = input("(Optional) Enter a short description of this configuration: ")
     
-    write_config_file(f'{name}', top_rows, main_detector, bottom_rows, t_thresh, v_thresh, s_thresh, tag)
+    write_config_file(f'{name}', top_rows, main_detector, bottom_rows, t_thresh, v_thresh, s_thresh, s_max, gain, tag)
     
     print(f"\nConfiguration file '{name}.cfg' created successfully!")
 

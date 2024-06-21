@@ -12,7 +12,7 @@ from src.plot_event import plotEvent
 from src.read_config import readConfig
 from src.unscrambler import trigIdSort, bufferSort
 
-def getEvents(filename, config, gain='HG'):
+def getEvents(filename, config):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -22,6 +22,8 @@ def getEvents(filename, config, gain='HG'):
     topHodoEnabled = config['topHodoEnabled']
     botHodoEnabled = config['botHodoEnabled']
 
+    gain = config['gain']
+    
     events = []
     totalEvents = 0
     currentTrigger = None
@@ -94,7 +96,7 @@ def getEvents(filename, config, gain='HG'):
     
     return events
         
-def getEventsTail(filename, config, timeWindow, gain='HG'):
+def getEventsTail(filename, config, timeWindow):
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -104,6 +106,8 @@ def getEventsTail(filename, config, timeWindow, gain='HG'):
     topHodoEnabled = config['topHodoEnabled']
     botHodoEnabled = config['botHodoEnabled']
 
+    gain = config['gain']
+    
     events = []
     totalEvents = 0
     currentTrigger = None
