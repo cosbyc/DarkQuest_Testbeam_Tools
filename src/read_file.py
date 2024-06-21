@@ -15,7 +15,8 @@ from src.unscrambler import trigIdSort, bufferSort
 def getEvents(filename, config):
     with open(filename, 'r') as file:
         lines = file.readlines()
-
+    file.close()
+        
     emcalCfg = config['emcalCfg']
     topHodoCfg = config['topHodoCfg']
     bottomHodoCfg = config['bottomHodoCfg']
@@ -72,10 +73,10 @@ def getEvents(filename, config):
             amplitude = int(parts[3])  # HG
             if gain.lower()=='lg':
                 amplitude = int(parts[2]) # LG
-            channelSum += amplitude
                 
             if board == 1:
                 row, col = remap(channel)
+                channelSum += amplitude
                 currentTrigger['emcal'][row, col] = amplitude
                 
             elif board == 0 and topHodoEnabled and channel < 2:
@@ -99,7 +100,8 @@ def getEvents(filename, config):
 def getEventsTail(filename, config, timeWindow):
     with open(filename, 'r') as file:
         lines = file.readlines()
-
+    file.close()
+    
     emcalCfg = config['emcalCfg']
     topHodoCfg = config['topHodoCfg']
     bottomHodoCfg = config['bottomHodoCfg']
