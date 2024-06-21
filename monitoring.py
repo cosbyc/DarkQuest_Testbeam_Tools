@@ -62,7 +62,7 @@ def threadPlot(func, inputFilename, config, outputDir):
         taskThread.start()
     
 def readSpill(inputFilename, config, outputDir):
-    allEvents = getEventsTail(inputFilename, config, timeWindow = 60)
+    allEvents = getEventsTail(inputFilename, config, timeWindow = 10)
     passedEvents = applyCuts(allEvents, config)
     averageEvent = averageADC(passedEvents)
     runNumber = inputFilename.split('Run')[1].split('_')[0]
