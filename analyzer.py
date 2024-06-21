@@ -29,6 +29,7 @@ def applyCuts(events, config):
     vetoThresh = config['vetoThresh']
     sumThresh = config['sumThresh']
     sumMax = config['sumMax']
+    gain = config['gain']
     #timeRange = config['timeRange']
     emcalCfg = config['emcalCfg']
     topHodoCfg = config['topHodoCfg']
@@ -105,15 +106,22 @@ def averageADC(events):
     for event in events:
         EMCalAvg += event['emcal']
     EMCalAvg /= num_events
-    
-    return {'emcal': EMCalAvg}
+
+    maxChannel = 0
+    bestYet = 0
+    for channel in range(16):
+        row, col = remap(channel)
+        if EMCalAvg[row][col] > bestYet:
+            bestYet = EMCalAvg[row][col]
+            maxChannel = channel
+
+    return {'emcal': EMCalAvg}, maxChannel
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', type=str, help='Janus event list')
     parser.add_argument('-p', '--makePlots', action='store_true', dest='makePlots', help='Create maps for all events') 
     parser.add_argument('-c', '--configFile', dest='configFile', type=str, help='The name of the .cfg file for the input run file', default='.previous_run.cfg')
-    parser.add_argument('-g', '--gain', dest='gain', type=str, help='Analyze high gain or low gain ', default=None)
     args = parser.parse_args()
 
     runConfig = readConfig(args.configFile)
@@ -121,22 +129,22 @@ def main():
     outputDir = f'output/run{runNumber}_{runConfig["name"][:-1]}'
     os.makedirs(outputDir, exist_ok=True)
 
-    gain = args.gain
-    if gain == None:
-        print('No gain setting specified. Assuming high gain.')
-        gain = 'HG'
-        
+    
     allEvents =  None
     if (runConfig['topHodoEnabled'] and runConfig['botHodoEnabled']):
         #trigIdSort(args.filename, runNumber) # DOES NOT WORK: DO NOT USE
         #events, totalEvents = analyzeRun(f'runFiles/Run{runNumber}_trigID_sorted.txt', runConfig)
         bufferSort(args.filename, runNumber)
-        allEvents = getEvents(f'runFiles/Run{runNumber}_list_buffer_sorted.txt', runConfig, gain=gain)
+        allEvents = getEvents(f'runFiles/Run{runNumber}_list_buffer_sorted.txt', runConfig)
     else:
         #allEvents = getEventsTail(args.filename, runConfig, gain=gain, timeWindow=60)
-        allEvents = getEvents(args.filename, runConfig, gain=gain)
+        allEvents = getEvents(args.filename, runConfig)
         
     events = applyCuts(allEvents, runConfig)
+    
+    #print(events[0])
+    #print(events[1])
+    #print(events[2])
     
     if len(events) == 0:
         print("No events passing selections\n")
@@ -147,17 +155,16 @@ def main():
     # plot average ADC per channel
     plt.cla()
     plt.close()
-    plotEvent(averageADC(events), outputDir, runNumber, len(allEvents), runConfig, avg=True, passingEvents = len(events), gain=gain)
+    plotEvent(averageADC(events)[0], outputDir, runNumber, len(allEvents), runConfig, avg=True, passingEvents = len(events), tag=f' max channel: {averageADC(events)[1]}')
 
     
     # produce histograms for all unmasked channels
-    plotHistograms(events, runConfig, runNumber, outputDir, gain=gain)
-
+    plotHistograms(events, runConfig, runNumber, outputDir, talk = True)
     # plotting loop
     if args.makePlots:
         print('Generating plots...\n')
         for i, event in enumerate(events):
-            plotEvent(event, outputDir, runNumber, len(allEvents), runConfig, gain=gain)
+            plotEvent(event, outputDir, runNumber, len(allEvents), runConfig)
             if ((i+1) % 20 == 0) or (i+1 == len(events)):
                 printProgressBar (i+1, len(events), suffix=f'{i+1}/{len(events)}')
         print('\n')
