@@ -1,7 +1,8 @@
 # DarkQuest Testbeam Tools
 ## Visualization and analysis tools for DarkQuest EMCal
 
-To configure an analysis, first run:
+### Generating an analysis config
+This code uses a standardized configuration file to help parse the Janus input files, and allow for simple offline selections. To generate a configuration, use:
 ```
 python3 create_config.py
 ```
@@ -9,7 +10,7 @@ Follow the prompts to define the selections you wish to apply to the run file. Y
 
 For quick low-gain heatmaps of a run file, with no selections, the default configuration 'allChannels.cfg' can be used.
 
-
+### Analyzing a run
 To produce heatmaps and histograms for a given run file and configuration, run:
 ```
 $ python3 analsys.py <Janus_event_list>.txt -c <configuration_file>.cfg -p
@@ -19,7 +20,8 @@ The `-p` option causes a heat map to be created for every event in run file whic
 
 Plots are saved in `./output/run<runNumber>_<configName>/`
 
-To see a summary of an active run, type:
+### Live monitoring
+To see a summary of the most recent spill during an active run, type:
 ```
 python3 monitoring.py <current_Janus_event_list>.txt (-c <configuration_file>.cfg)
 ```
