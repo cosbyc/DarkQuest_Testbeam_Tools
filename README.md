@@ -1,5 +1,5 @@
 ## DarkQuest Testbeam Tools
-#Visualization and analysis tools for DarkQuest EMCal
+# Visualization and analysis tools for DarkQuest EMCal
 
 To configure an analysis, first run:
 ```
