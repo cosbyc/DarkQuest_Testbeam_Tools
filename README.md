@@ -17,7 +17,7 @@ $ python3 analsys.py <Janus_event_list>.txt -c <configuration_file>.cfg -p
 
 The `-p` option causes a heat map to be created for every event in run file which passes the configuration selections. Remove it if you only wish to see the average ADC heat map and ADC histograms for each channel. If there are many events in your run, you can terminate the image generation with `ctrl + C` after enough have been generated.
 
-Plots are saved in ./output/run<runNumber>_<configName>/
+Plots are saved in `./output/run<runNumber>_<configName>/`
 
 To see a summary of an active run, type:
 ```
