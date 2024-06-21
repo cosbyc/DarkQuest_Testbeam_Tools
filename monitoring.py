@@ -34,7 +34,14 @@ spillPath = ''
 working = False
 currentMax = 0
 prevMax =''
+started = False
 
+# Button is clicked
+def startRun():
+        global started
+        print('Starting run!')
+        started = True
+        
 # Button is clicked
 def sync():
         global working
@@ -92,9 +99,21 @@ def loop(inputFilename, config, outputDir, labelList, root):
         global working
         global currentMax
         global prevMax
+        global started
 
+
+        
+        if started == False:
+                var = tk.IntVar()
+                button = Button(root, text='Start', bg='#A9A9A9', font=('arial', 20, 'normal'), command=lambda: var.set(1))
+                button.place(x=400, y=380)
+                button.wait_variable(var)
+                startRun()
+                button.configure(text = "Sync", command = sync)
+                labelList[0].config(text=f'Spill: {spillID}')
+
+                
         seconds +=1
-        labelList[4].config(command=(sync))
         labelList[1].config(text=f'Updating in {60- seconds} seconds.')
         if working == False:
                 labelList[5].config(text=f'')
@@ -167,7 +186,7 @@ def startGUI(inputFilename, config, outputDir):
         spillTag = Label(root, text=f'Spill: XX', bg='#A9A9A9', font=('arial', 16, 'normal'))
         spillTag.place(x=324, y=255)
 
-        updateTag = Label(root, text=f'Reading Janus file. One moment...', bg='#A9A9A9', font=('arial', 16, 'normal'), anchor="e")
+        updateTag = Label(root, text=f'Wait until the spill, count to five and press \'Start\'', bg='#A9A9A9', font=('arial', 16, 'normal'), anchor="e")
         updateTag.place(x=324, y=280)
 
         workingTag = Label(root, text=f'', bg='#A9A9A9', font=('arial', 16, 'normal'), anchor="e")
@@ -182,14 +201,11 @@ def startGUI(inputFilename, config, outputDir):
 
 
         
-        button = Button(root, text='Sync', bg='#A9A9A9', font=('arial', 20, 'normal'), command = sync)
-        button.place(x=400, y=380)
-
         labelList.append(spillTag) # [0]
         labelList.append(updateTag) # [1]
         labelList.append(avgADCL) # [2]
         labelList.append(histogramL) # [3]
-        labelList.append(button) # [4]
+        labelList.append('buttonPlaceholder') # [4]
         labelList.append(workingTag) # [5]
         labelList.append(histogramMaxL) # [6]
         labelList.append(randOneL) # [7]
@@ -197,7 +213,7 @@ def startGUI(inputFilename, config, outputDir):
 
         # Generate first plot set
         readSpill(inputFilename, config, f'{spillPath}')
-        labelList[0].config(text=f'Spill: {spillID}')
+        labelList[0].config(text=f'Spill: XX')
         prevMax = f'{spillPath}/channel_{str(currentMax).zfill(2)}_histogram.png'
 
         root.after(1000, loop, inputFilename, config, outputDir, labelList, root)  # Schedule first check.        

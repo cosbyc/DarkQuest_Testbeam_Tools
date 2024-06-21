@@ -13,7 +13,7 @@ For quick low-gain heatmaps of a run file, with no selections, the default confi
 ### Analyzing a run
 To produce heatmaps and histograms for a given run file and configuration, run:
 ```
-$ python3 analsys.py <Janus_event_list>.txt -c <configuration_file>.cfg -p
+$ python3 analyzer.py <Janus_event_list>.txt -c <configuration_file>.cfg -p
 ```
 
 The `-p` option causes a heat map to be created for every event in run file which passes the configuration selections. Remove it if you only wish to see the average ADC heat map and ADC histograms for each channel. If there are many events in your run, you can terminate the image generation with `ctrl + C` after enough have been generated.
@@ -25,4 +25,4 @@ To see a summary of the most recent spill during an active run, type:
 ```
 python3 monitoring.py <current_Janus_event_list>.txt (-c <configuration_file>.cfg)
 ```
-If no configuration file is provided, it will default to an inclusive analysis of all events recorded within the last ten seconds (approximately the length of the spill), updating every minute. To align the analysis window with the beam, wait until about 5 seconds after the spill, and press "Sync"
+If no configuration file is provided, it will default to an inclusive analysis of all events recorded within the last ten seconds (approximately the length of the spill), updating every minute. To after starting the program, wait until about 5 seconds after a spill, and press "Start". The analysis window can be reset by pressing "Sync" at any time. 
