@@ -25,4 +25,4 @@ To see a summary of the most recent spill during an active run, type:
 ```
 python3 monitoring.py <current_Janus_event_list>.txt (-c <configuration_file>.cfg)
 ```
-If no configuration file is provided, it will default to an inclusive analysis of all events recorded within the last ten seconds (approximately the length of the spill), updating every minute. To after starting the program, wait until the moment the spill arrives, and press "Start". The analysis window can be reset by pressing "Sync" at any time. 
+If no configuration file is provided, it will default to an inclusive analysis of all events recorded within the last ten seconds (approximately the length of the spill), updating every minute. To after starting the program, wait until the moment the spill arrives, and press "Start". The analysis window can be reset by pressing "Sync" at any time. Image files are saved for 50 spills before deletion. Spill run lists are permanently saved.
